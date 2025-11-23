@@ -20,6 +20,8 @@ export class DashboardComponent implements OnInit {
   error = '';
   successMessage = '';
   userEmail = '';
+  isAdmin = false;
+  clienteIdLogado?: number;
 
   // Modal states
   isClienteModalOpen = false;
@@ -35,7 +37,9 @@ export class DashboardComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {
     this.authService.currentUser$.subscribe(user => {
-      this.userEmail = user?.email || '';
+      this.userEmail = user?.email || 'Usuário';
+      this.isAdmin = user?.tipoUsuario === 'Admin';
+      this.clienteIdLogado = user?.clienteId;
     });
   }
 
@@ -50,6 +54,28 @@ export class DashboardComponent implements OnInit {
     this.error = '';
     this.clearMessages();
 
+    // Se for Cliente, carregar apenas seus dados
+    if (!this.isAdmin && this.clienteIdLogado) {
+      this.clienteService.obterPorId(this.clienteIdLogado).subscribe({
+        next: (response) => {
+          console.log('Cliente recebido:', response);
+          // A resposta vem com { data: cliente, isSuccess: true }
+          this.clientes = response.data ? [response.data] : [];
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error loading cliente:', err);
+          this.error = err.error?.message || 'Erro ao carregar seus dados';
+          this.loading = false;
+          this.clientes = [];
+          this.cdr.detectChanges();
+        }
+      });
+      return;
+    }
+
+    // Se for Admin, carregar todos
     this.clienteService.obterTodos().subscribe({
       next: (clientes) => {
         console.log('Clientes recebidos:', clientes);
@@ -61,9 +87,13 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading clientes:', err);
-        this.error = err.message || 'Erro ao carregar clientes';
+        if (err.status === 403) {
+          this.error = 'Você não tem permissão para visualizar todos os clientes';
+        } else {
+          this.error = err.error?.message || 'Erro ao carregar clientes';
+        }
         this.loading = false;
-        this.clientes = []; // Garante array vazio em caso de erro
+        this.clientes = [];
         this.cdr.detectChanges();
       }
     });

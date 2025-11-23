@@ -9,32 +9,26 @@ import { environment } from '../../environments/environment';
 })
 export class AuthService {
   private readonly TOKEN_KEY = 'auth_token';
-  private readonly USER_KEY = 'user_email';
+  private readonly USER_KEY = 'user_data';
   private currentUserSubject = new BehaviorSubject<User | null>(this.getCurrentUser());
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
-  // Login simulado - ajuste quando tiver endpoint real no backend
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    // TODO: Substituir por endpoint real quando disponível
-    // return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, credentials);
-    
-    // Simulação temporária
-    return new Observable<LoginResponse>(observer => {
-      setTimeout(() => {
-        const mockResponse: LoginResponse = {
-          token: 'mock-jwt-token-' + Date.now(),
-          email: credentials.email
-        };
-        observer.next(mockResponse);
-        observer.complete();
-      }, 500);
-    }).pipe(
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/login`, credentials).pipe(
       tap((response: LoginResponse) => {
         this.saveToken(response.token);
-        this.saveUser(response.email);
-        this.currentUserSubject.next({ email: response.email });
+        this.saveUser({
+          email: response.email,
+          tipoUsuario: response.tipoUsuario,
+          clienteId: response.clienteId
+        });
+        this.currentUserSubject.next({
+          email: response.email,
+          tipoUsuario: response.tipoUsuario,
+          clienteId: response.clienteId
+        });
       })
     );
   }
@@ -53,16 +47,26 @@ export class AuthService {
     return !!this.getToken();
   }
 
+  isAdmin(): boolean {
+    const user = this.getCurrentUser();
+    return user?.tipoUsuario === 'Admin';
+  }
+
   private saveToken(token: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
   }
 
-  private saveUser(email: string): void {
-    localStorage.setItem(this.USER_KEY, email);
+  private saveUser(user: User): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
   private getCurrentUser(): User | null {
-    const email = localStorage.getItem(this.USER_KEY);
-    return email ? { email } : null;
+    const userData = localStorage.getItem(this.USER_KEY);
+    if (!userData) return null;
+    try {
+      return JSON.parse(userData) as User;
+    } catch {
+      return null;
+    }
   }
 }

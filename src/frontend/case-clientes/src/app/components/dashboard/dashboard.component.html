@@ -1,8 +1,11 @@
 <div class="dashboard-container">
   <header class="header">
     <div class="header-content">
-      <h1>Sistema de Clientes s </h1>
+      <h1>Sistema de Clientes</h1>
       <div class="user-info">
+        <span class="user-badge" [class.admin]="isAdmin" [class.cliente]="!isAdmin">
+          {{ isAdmin ? '👑 Admin' : '👤 Cliente' }}
+        </span>
         <span class="user-email">{{ userEmail }}</span>
         <button class="btn-logout" (click)="onLogout()">Sair</button>
       </div>
@@ -11,10 +14,12 @@
 
   <main class="main-content">
     <div class="toolbar">
-      <h2>Gerenciar Clientes</h2>
-      <button class="btn-primary" (click)="onNovoCliente()">
-        <span class="icon">+</span> Novo Cliente
-      </button>
+      <h2>{{ isAdmin ? 'Gerenciar Clientes' : 'Minha Conta' }}</h2>
+      @if (isAdmin) {
+        <button class="btn-primary" (click)="onNovoCliente()">
+          <span class="icon">+</span> Novo Cliente
+        </button>
+      }
     </div>
 
     @if (successMessage) {
@@ -64,20 +69,22 @@
                 <td>{{ formatarData(cliente.dataCriacao) }}</td>
                 <td class="actions-column">
                   <div class="action-buttons">
-                    <button 
-                      class="btn-action btn-edit" 
-                      (click)="onEditar(cliente)"
-                      title="Editar cliente"
-                    >
-                      ✏️
-                    </button>
-                    <button 
-                      class="btn-action btn-delete" 
-                      (click)="onDeletar(cliente)"
-                      title="Deletar cliente"
-                    >
-                      🗑️
-                    </button>
+                    @if (isAdmin) {
+                      <button 
+                        class="btn-action btn-edit" 
+                        (click)="onEditar(cliente)"
+                        title="Editar cliente"
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        class="btn-action btn-delete" 
+                        (click)="onDeletar(cliente)"
+                        title="Deletar cliente"
+                      >
+                        🗑️
+                      </button>
+                    }
                     <button 
                       class="btn-action btn-deposit" 
                       (click)="onDepositar(cliente)"

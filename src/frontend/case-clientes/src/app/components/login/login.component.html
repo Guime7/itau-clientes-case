@@ -11,7 +11,36 @@
 
     <form (ngSubmit)="onLogin()" class="login-form">
       <div class="form-group">
-        <label for="email">Email</label>
+        <label for="tipoUsuario">Tipo de Usuário</label>
+        <select
+          id="tipoUsuario"
+          name="tipoUsuario"
+          [(ngModel)]="tipoUsuario"
+          [disabled]="loading"
+          required
+        >
+          <option value="Admin">Admin</option>
+          <option value="Cliente">Cliente</option>
+        </select>
+      </div>
+
+      @if (tipoUsuario === 'Cliente') {
+        <div class="form-group">
+          <label for="clienteId">ID do Cliente</label>
+          <input
+            type="number"
+            id="clienteId"
+            name="clienteId"
+            [(ngModel)]="clienteId"
+            placeholder="1"
+            [disabled]="loading"
+            required
+          />
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="email">Email (opcional)</label>
         <input
           type="email"
           id="email"
@@ -19,20 +48,18 @@
           [(ngModel)]="email"
           placeholder="seu@email.com"
           [disabled]="loading"
-          required
         />
       </div>
 
       <div class="form-group">
-        <label for="senha">Senha</label>
+        <label for="senha">Senha (não validada)</label>
         <input
           type="password"
           id="senha"
           name="senha"
           [(ngModel)]="senha"
-          placeholder="••••••••"
+          placeholder="qualquer coisa"
           [disabled]="loading"
-          required
         />
       </div>
 
@@ -49,6 +76,13 @@
       </button>
     </form>
 
-    <p class="hint">💡 Use qualquer email/senha para acessar (demo)</p>
+    <div class="hint">
+      <p><strong>💡 Instruções de Login (Demo):</strong></p>
+      <ul>
+        <li><strong>Admin:</strong> Selecione "Admin" - vê todos clientes, pode criar/editar/deletar</li>
+        <li><strong>Cliente:</strong> Selecione "Cliente" e informe um ID existente - vê apenas seus dados</li>
+      </ul>
+      <p><small>Email e senha são opcionais (não validados nesta versão de demo)</small></p>
+    </div>
   </div>
 </div>

@@ -20,9 +20,9 @@
 [] trocar as cores para paleta do itau
 
 # GOLs
-[] Criar contrato de api usando typespec?
-[] Adicionar autenticação e autorização, como? - Ver se vou implementar a parte do cliente logado
-[] Criar testes de carga
+[x] Criar contrato de api usando typespec? - Descartado
+[x] Adicionar autenticação e autorização, como? - Ver se vou implementar a parte do cliente logado
+[x] Criar testes de carga - Descartado
 [] Criar testes end to end
 
 # Finalizando

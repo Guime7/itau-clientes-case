@@ -1,9 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text;
 using Itau.Case.Clientes.Application.Common.Mediator;
 using Itau.Case.Clientes.Application.Interfaces;
 using Itau.Case.Clientes.Infrastructure.Data;
 using Itau.Case.Clientes.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 
@@ -28,6 +31,31 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog();
+
+// Configurar JWT Authentication
+var jwtKey = builder.Configuration["Jwt:SecretKey"] ?? "UmaChaveMuitoSecretaParaOSeuCaseItau123!";
+var key = Encoding.ASCII.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddAuthorization();
 
 // Configurar conexão MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -96,6 +124,8 @@ app.UseCors(corsPolicy);
 
 app.UseSerilogRequestLogging();
 
+// ORDEM IMPORTA: Authentication antes de Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

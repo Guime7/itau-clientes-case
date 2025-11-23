@@ -12,6 +12,8 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
+  tipoUsuario = 'Admin'; // 'Admin' ou 'Cliente'
+  clienteId: number | null = null;
   email = '';
   senha = '';
   loading = false;
@@ -23,27 +25,32 @@ export class LoginComponent {
   ) {}
 
   onLogin(): void {
-    if (!this.email || !this.senha) {
-      this.error = 'Por favor, preencha email e senha';
+    // Validação: se Cliente, precisa informar o ClienteId
+    if (this.tipoUsuario === 'Cliente' && !this.clienteId) {
+      this.error = 'Por favor, informe o ID do cliente';
       return;
     }
 
     this.loading = true;
     this.error = '';
 
-    this.authService.login({ email: this.email, senha: this.senha })
-      .subscribe({
-        next: () => {
-          this.router.navigate(['/dashboard']);
-        },
-        error: (err) => {
-          this.error = 'Erro ao fazer login. Tente novamente.';
-          this.loading = false;
-          console.error('Login error:', err);
-        },
-        complete: () => {
-          this.loading = false;
-        }
-      });
+    this.authService.login({
+      tipoUsuario: this.tipoUsuario,
+      clienteId: this.clienteId ?? undefined,
+      email: this.email || undefined,
+      senha: this.senha || undefined
+    }).subscribe({
+      next: () => {
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.error = err.error?.message || 'Erro ao fazer login. Tente novamente.';
+        this.loading = false;
+        console.error('Login error:', err);
+      },
+      complete: () => {
+        this.loading = false;
+      }
+    });
   }
 }
