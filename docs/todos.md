@@ -1,14 +1,14 @@
 [x] Terminar a API
 [x] Conectar no banco de dados
-[] Trocar para Dapper
+[x] Trocar para Dapper
 [] Criar tabela de transações e sensibilizar codigo
-[] Criar testes unitarios
-[] Criar testes integrados
+[x] Criar testes unitarios
+[x] Criar testes integrados
 [] Arrumar result pattern
 [] Configurar middlewares
 [] Adicionar logs e traces
 [] Configurar Cors
-[] Arrumar codigo
+[] Arrumar codigo e garantir qualidade
 
 [x] Criar o frontend
 [x] Conectar na API

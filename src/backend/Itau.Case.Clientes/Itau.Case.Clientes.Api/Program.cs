@@ -4,15 +4,13 @@ using Itau.Case.Clientes.Application.Common.Mediator;
 using Itau.Case.Clientes.Application.Interfaces;
 using Itau.Case.Clientes.Infrastructure.Data;
 using Itau.Case.Clientes.Infrastructure.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar DbContext com SQLite in-memory
-// A conexão precisa permanecer aberta durante toda a vida útil da aplicação
-var connection = ClientesDbContext.GetInMemoryConnection();
-builder.Services.AddDbContext<ClientesDbContext>(options =>
-    options.UseSqlite(connection));
+// Configurar conexão MySQL
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Server=localhost;Port=3306;Database=case_clientes;User=case_user;Password=case_password;";
+builder.Services.AddSingleton(new ClientesDbContext(connectionString));
 
 // Registrar Repository
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
@@ -48,14 +46,6 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
-// Inicializar o banco de dados em memória
-// Criar as tabelas no banco de dados
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<ClientesDbContext>();
-    dbContext.Database.EnsureCreated();
-}
 
 if (app.Environment.IsDevelopment())
 {

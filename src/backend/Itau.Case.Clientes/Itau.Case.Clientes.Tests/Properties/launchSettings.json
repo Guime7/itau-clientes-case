@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Itau.Case.Clientes.Tests": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:50094;http://localhost:50095"
+    }
+  }
+}
