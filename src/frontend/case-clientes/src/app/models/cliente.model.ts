@@ -22,8 +22,18 @@ export interface TransacaoRequest {
   descricao: string;
 }
 
-export interface ApiResponse<T> {
+// Result Pattern types matching backend API
+export interface Result<T> {
+  isSuccess: boolean;
   data?: T;
-  mensagem?: string;
-  erro?: string;
+  message?: string;
+  errorCode?: string;
+  errorDescription?: string;
+}
+
+export interface ResultVoid {
+  isSuccess: boolean;
+  message?: string;
+  errorCode?: string;
+  errorDescription?: string;
 }

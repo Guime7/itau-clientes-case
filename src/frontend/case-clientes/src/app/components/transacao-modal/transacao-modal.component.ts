@@ -17,6 +17,7 @@ export class TransacaoModalComponent {
   @Input() isOpen = false;
   @Input() cliente?: Cliente;
   @Input() tipo: TipoTransacao = 'deposito';
+  @Input() error = '';
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<{ clienteId: number; tipo: TipoTransacao; data: TransacaoRequest }>();
 

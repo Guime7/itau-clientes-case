@@ -12,6 +12,6 @@ CREATE TABLE IF NOT EXISTS Clientes (
 
 -- Inserir alguns dados de exemplo
 INSERT INTO Clientes (Nome, Email, Saldo, DataCriacao, DataAtualizacao) VALUES
-('João Silva', 'joao.silva@email.com', 5000.00, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
+('Jose Silva', 'jose.silva@email.com', 5000.00, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
 ('Maria Santos', 'maria.santos@email.com', 7500.50, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
 ('Pedro Oliveira', 'pedro.oliveira@email.com', 3200.75, UTC_TIMESTAMP(), UTC_TIMESTAMP());

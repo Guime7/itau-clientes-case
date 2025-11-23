@@ -14,6 +14,7 @@ import { Cliente, CriarClienteRequest, AtualizarClienteRequest } from '../../mod
 export class ClienteFormModalComponent implements OnChanges {
   @Input() isOpen = false;
   @Input() cliente?: Cliente;
+  @Input() error = '';
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<CriarClienteRequest | { id: number; data: AtualizarClienteRequest }>();
 

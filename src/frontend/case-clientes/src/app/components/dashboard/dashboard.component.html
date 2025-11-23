@@ -17,15 +17,22 @@
       </button>
     </div>
 
+    @if (successMessage) {
+      <div class="success-message">
+        <p>✓ {{ successMessage }}</p>
+      </div>
+    }
+
+    @if (error && !loading) {
+      <div class="error-message">
+        <p>✗ {{ error }}</p>
+      </div>
+    }
+
     @if (loading) {
       <div class="loading">
         <div class="spinner"></div>
         <p>Carregando clientes...</p>
-      </div>
-    } @else if (error) {
-      <div class="error-message">
-        <p>{{ error }}</p>
-        <button class="btn-secondary" (click)="carregarClientes()">Tentar novamente</button>
       </div>
     } @else {
       <div class="table-container">
@@ -100,6 +107,7 @@
 <app-cliente-form-modal
   [isOpen]="isClienteModalOpen"
   [cliente]="selectedCliente"
+  [error]="modalError"
   (close)="onCloseClienteModal()"
   (save)="onSaveCliente($event)"
 ></app-cliente-form-modal>
@@ -108,6 +116,7 @@
   [isOpen]="isTransacaoModalOpen"
   [cliente]="selectedCliente"
   [tipo]="tipoTransacao"
+  [error]="modalError"
   (close)="onCloseTransacaoModal()"
   (save)="onSaveTransacao($event)"
 ></app-transacao-modal>

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ClienteService } from '../../services/cliente.service';
@@ -18,6 +18,7 @@ export class DashboardComponent implements OnInit {
   clientes: Cliente[] = [];
   loading = false;
   error = '';
+  successMessage = '';
   userEmail = '';
 
   // Modal states
@@ -25,11 +26,13 @@ export class DashboardComponent implements OnInit {
   isTransacaoModalOpen = false;
   selectedCliente?: Cliente;
   tipoTransacao: TipoTransacao = 'deposito';
+  modalError = '';
 
   constructor(
     private clienteService: ClienteService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.authService.currentUser$.subscribe(user => {
       this.userEmail = user?.email || '';
@@ -37,29 +40,57 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log('DashboardComponent initialized');
     this.carregarClientes();
   }
 
   carregarClientes(): void {
+    console.log('Carregando clientes...');
     this.loading = true;
     this.error = '';
+    this.clearMessages();
 
     this.clienteService.obterTodos().subscribe({
       next: (clientes) => {
-        this.clientes = clientes;
+        console.log('Clientes recebidos:', clientes);
+        console.log('É array?', Array.isArray(clientes));
+        // Garante que sempre seja um array
+        this.clientes = Array.isArray(clientes) ? clientes : [];
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        this.error = 'Erro ao carregar clientes';
-        this.loading = false;
         console.error('Error loading clientes:', err);
+        this.error = err.message || 'Erro ao carregar clientes';
+        this.loading = false;
+        this.clientes = []; // Garante array vazio em caso de erro
+        this.cdr.detectChanges();
       }
     });
   }
 
+  private clearMessages(): void {
+    this.error = '';
+    this.successMessage = '';
+    this.modalError = '';
+  }
+
+  private showSuccess(message: string): void {
+    this.successMessage = message;
+    setTimeout(() => this.successMessage = '', 5000);
+  }
+
+  private showError(message: string): void {
+    this.error = message;
+    setTimeout(() => this.error = '', 5000);
+  }
+
   onNovoCliente(): void {
+    console.log('Abrindo modal de novo cliente');
     this.selectedCliente = undefined;
     this.isClienteModalOpen = true;
+    console.log('Modal aberto:', this.isClienteModalOpen);
+    this.cdr.detectChanges();
   }
 
   onEditar(cliente: Cliente): void {
@@ -69,12 +100,20 @@ export class DashboardComponent implements OnInit {
 
   onDeletar(cliente: Cliente): void {
     if (confirm(`Tem certeza que deseja deletar o cliente ${cliente.nome}?`)) {
+      this.loading = true;
       this.clienteService.deletar(cliente.id).subscribe({
-        next: () => {
-          this.carregarClientes();
+        next: (result) => {
+          this.loading = false;
+          if (result.isSuccess) {
+            this.showSuccess('Cliente deletado com sucesso!');
+            this.carregarClientes();
+          } else {
+            this.showError(result.errorDescription || 'Erro ao deletar cliente');
+          }
         },
         error: (err) => {
-          alert('Erro ao deletar cliente');
+          this.loading = false;
+          this.showError(err.message || 'Erro ao deletar cliente');
           console.error('Error deleting cliente:', err);
         }
       });
@@ -107,27 +146,39 @@ export class DashboardComponent implements OnInit {
   }
 
   onSaveCliente(data: CriarClienteRequest | { id: number; data: AtualizarClienteRequest }): void {
+    this.modalError = '';
+    
     if ('id' in data) {
       // Atualizar
       this.clienteService.atualizar(data.id, data.data).subscribe({
-        next: () => {
-          this.isClienteModalOpen = false;
-          this.carregarClientes();
+        next: (result) => {
+          if (result.isSuccess) {
+            this.isClienteModalOpen = false;
+            this.showSuccess(result.message || 'Cliente atualizado com sucesso!');
+            this.carregarClientes();
+          } else {
+            this.modalError = result.errorDescription || 'Erro ao atualizar cliente';
+          }
         },
         error: (err) => {
-          alert('Erro ao atualizar cliente');
+          this.modalError = err.message || 'Erro ao atualizar cliente';
           console.error('Error updating cliente:', err);
         }
       });
     } else {
       // Criar
       this.clienteService.criar(data).subscribe({
-        next: () => {
-          this.isClienteModalOpen = false;
-          this.carregarClientes();
+        next: (result) => {
+          if (result.isSuccess) {
+            this.isClienteModalOpen = false;
+            this.showSuccess(result.message || 'Cliente criado com sucesso!');
+            this.carregarClientes();
+          } else {
+            this.modalError = result.errorDescription || 'Erro ao criar cliente';
+          }
         },
         error: (err) => {
-          alert('Erro ao criar cliente');
+          this.modalError = err.message || 'Erro ao criar cliente';
           console.error('Error creating cliente:', err);
         }
       });
@@ -135,17 +186,25 @@ export class DashboardComponent implements OnInit {
   }
 
   onSaveTransacao(event: { clienteId: number; tipo: TipoTransacao; data: TransacaoRequest }): void {
+    this.modalError = '';
+    
     const observable = event.tipo === 'deposito'
       ? this.clienteService.depositar(event.clienteId, event.data)
       : this.clienteService.sacar(event.clienteId, event.data);
 
     observable.subscribe({
-      next: () => {
-        this.isTransacaoModalOpen = false;
-        this.carregarClientes();
+      next: (result) => {
+        if (result.isSuccess) {
+          this.isTransacaoModalOpen = false;
+          const operacao = event.tipo === 'deposito' ? 'Depósito' : 'Saque';
+          this.showSuccess(result.message || `${operacao} realizado com sucesso!`);
+          this.carregarClientes();
+        } else {
+          this.modalError = result.errorDescription || `Erro ao realizar ${event.tipo}`;
+        }
       },
       error: (err) => {
-        alert(`Erro ao realizar ${event.tipo}`);
+        this.modalError = err.message || `Erro ao realizar ${event.tipo}`;
         console.error(`Error ${event.tipo}:`, err);
       }
     });
@@ -154,10 +213,12 @@ export class DashboardComponent implements OnInit {
   onCloseClienteModal(): void {
     this.isClienteModalOpen = false;
     this.selectedCliente = undefined;
+    this.modalError = '';
   }
 
   onCloseTransacaoModal(): void {
     this.isTransacaoModalOpen = false;
     this.selectedCliente = undefined;
+    this.modalError = '';
   }
 }
