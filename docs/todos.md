@@ -1,5 +1,6 @@
 [x] Terminar a API
 [x] Conectar no banco de dados
+[] Trocar para Dapper
 [] Criar tabela de transações e sensibilizar codigo
 [] Criar testes unitarios
 [] Criar testes integrados
@@ -26,7 +27,7 @@
 [] Criar testes de carga
 
 [] Escrever premissas
-[] Criar dockerfile e dockercompose
+[x] Criar dockerfile e dockercompose
 [] Documentar e arrumar arquivos do projeto
 
 [] Finalizar o projeto.
