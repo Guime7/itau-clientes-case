@@ -1,0 +1,91 @@
+version: '3.8'
+
+# Nome da stack
+name: case-clientes
+
+# Networks
+networks:
+  network:
+    driver: bridge
+    name: network
+
+# Volumes
+volumes:
+  mysql-data:
+    name: mysql-data
+  
+services:
+  # Database - MySQL (Aurora-like)
+  database:
+    container_name: database-mysql
+    build:
+      context: ./database/case-clientes-mysql
+      dockerfile: Dockerfile
+    image: case-clientes-mysql:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-case_clientes}
+      - MYSQL_USER=${MYSQL_USER:-case_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-case_password}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - network
+    restart: unless-stopped
+
+  # Backend API - .NET 8
+  backend:
+    container_name: backend-dotnet
+    build:
+      context: ./backend/Itau.Case.Clientes
+      dockerfile: Itau.Case.Clientes.Api/Dockerfile
+      args:
+        - HTTP_PORT=${BACKEND_HTTP_PORT:-8080}
+    image: backend-dotnet:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ASPNETCORE_URLS=http://+:${BACKEND_HTTP_PORT:-8080}
+      - ConnectionStrings__DefaultConnection=Server=database;Port=3306;Database=${MYSQL_DATABASE:-case_clientes};User=${MYSQL_USER:-case_user};Password=${MYSQL_PASSWORD:-case_password};
+    ports:
+      - "${BACKEND_HTTP_PORT:-8080}:${BACKEND_HTTP_PORT:-8080}"
+    depends_on:
+      - database
+    networks:
+      - network
+    # Limites similares ao ECS Fargate (0.25 vCPU, 512 MB)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+        reservations:
+          cpus: '0.125'
+          memory: 256M
+    restart: unless-stopped
+
+  # Frontend - Angular
+  frontend:
+    container_name: frontend-angular
+    build:
+      context: ./frontend/case-clientes
+      dockerfile: Dockerfile
+      args:
+        - PORT=${FRONTEND_PORT:-4200}
+    image: frontend-angular:latest
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${FRONTEND_PORT:-4200}
+      - API_URL=http://backend:${BACKEND_HTTP_PORT:-8080}
+    ports:
+      - "${FRONTEND_PORT:-4200}:${FRONTEND_PORT:-4200}"
+    depends_on:
+      - backend
+    networks:
+      - network
+    volumes:
+      - ./frontend/case-clientes/src:/app/src
+      - ./frontend/case-clientes/public:/app/public
+      - /app/node_modules
+    restart: unless-stopped

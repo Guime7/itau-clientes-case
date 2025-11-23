@@ -1,0 +1,67 @@
+<app-modal [isOpen]="isOpen" [title]="title" (close)="onClose()">
+  @if (cliente) {
+    <div class="cliente-info">
+      <div class="info-row">
+        <span class="label">Cliente:</span>
+        <span class="value">{{ cliente.nome }}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Saldo Atual:</span>
+        <span class="value saldo">{{ formatarMoeda(cliente.saldo) }}</span>
+      </div>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="form">
+      <div class="form-group">
+        <label for="valor">Valor (R$) *</label>
+        <input
+          type="number"
+          id="valor"
+          name="valor"
+          [(ngModel)]="valor"
+          placeholder="0.00"
+          step="0.01"
+          min="0.01"
+          [disabled]="loading"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="descricao">Descrição *</label>
+        <textarea
+          id="descricao"
+          name="descricao"
+          [(ngModel)]="descricao"
+          placeholder="Motivo da transação"
+          rows="3"
+          [disabled]="loading"
+          required
+        ></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          (click)="onClose()"
+          [disabled]="loading"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="submit" 
+          class="btn"
+          [ngClass]="tipo === 'deposito' ? 'btn-success' : 'btn-warning'"
+          [disabled]="loading"
+        >
+          @if (loading) {
+            <span>Processando...</span>
+          } @else {
+            <span>{{ icon }} {{ buttonText }}</span>
+          }
+        </button>
+      </div>
+    </form>
+  }
+</app-modal>

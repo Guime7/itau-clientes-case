@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Context\Commands\CreateCliente\**" />
+    <EmbeddedResource Remove="Context\Commands\CreateCliente\**" />
+    <None Remove="Context\Commands\CreateCliente\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Context\Commands\DeletarCliente\" />
+    <Folder Include="Context\Commands\DepositarSaldoCliente\" />
+    <Folder Include="Context\Commands\SacarSaldoCliente\" />
+    <Folder Include="Context\Commands\AtualizarCliente\" />
+    <Folder Include="Context\Queries\ObterClientePorId\" />
+    <Folder Include="Context\Queries\ObterTodosClientes\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Itau.Case.Clientes.Domain\Itau.Case.Clientes.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
