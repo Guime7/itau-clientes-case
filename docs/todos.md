@@ -1,13 +1,13 @@
 [x] Terminar a API
 [x] Conectar no banco de dados
 [x] Trocar para Dapper
-[] Criar tabela de transações e sensibilizar codigo
+[x] Criar tabela de transações e sensibilizar codigo
 [x] Criar testes unitarios
 [x] Criar testes integrados
-[] Arrumar result pattern
-[] Configurar middlewares
-[] Adicionar logs e traces
-[] Configurar Cors
+[x] Arrumar result pattern
+[x] Configurar middlewares
+[x] Adicionar logs e traces
+[x] Configurar Cors
 [] Arrumar codigo e garantir qualidade
 
 [x] Criar o frontend
@@ -17,6 +17,7 @@
 [] Está com erro ao dar refresh na tela
 [] Não está exibindo mensagens de erro vindas da api
 [] trocar as cores para paleta do itau
+[] Arrumar codigo e garantir qualidade
 
 [] Desenhar arquitetura
 [] Criar testes end to end

@@ -4,8 +4,30 @@ using Itau.Case.Clientes.Application.Common.Mediator;
 using Itau.Case.Clientes.Application.Interfaces;
 using Itau.Case.Clientes.Infrastructure.Data;
 using Itau.Case.Clientes.Infrastructure.Repositories;
+using Serilog;
+using Serilog.Events;
+
+// Configurar Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithProperty("Application", "Itau.Case.Clientes.Api")
+    .WriteTo.Console()
+    .WriteTo.DatadogLogs(
+        apiKey: Environment.GetEnvironmentVariable("DD_API_KEY") ?? "dummy-key",
+        source: "csharp",
+        service: "itau-case-clientes-api",
+        host: Environment.MachineName,
+        configuration: new Serilog.Sinks.Datadog.Logs.DatadogConfiguration { Url = "https://http-intake.logs.datadoghq.com" })
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog();
 
 // Configurar conexão MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -35,14 +57,26 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configurar CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngular",
-        builder => builder
-            .WithOrigins("http://localhost:4200") // URL do Angular em dev
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:4200",
+                "http://localhost:3000",
+                "http://frontend:4200")
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials());
+            .AllowCredentials();
+    });
+
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
 });
 
 var app = builder.Build();
@@ -56,13 +90,29 @@ if (app.Environment.IsDevelopment())
 // Comentado para funcionar em Docker sem certificado HTTPS
 // app.UseHttpsRedirection();
 
-app.UseCors("AllowAngular");
+// Configurar CORS baseado no ambiente
+var corsPolicy = app.Environment.IsDevelopment() ? "AllowAll" : "AllowFrontend";
+app.UseCors(corsPolicy);
+
+app.UseSerilogRequestLogging();
 
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+try
+{
+    Log.Information("Iniciando aplicação Itau.Case.Clientes.Api");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Aplicação falhou ao iniciar");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 [ExcludeFromCodeCoverage]
 public partial class Program { }

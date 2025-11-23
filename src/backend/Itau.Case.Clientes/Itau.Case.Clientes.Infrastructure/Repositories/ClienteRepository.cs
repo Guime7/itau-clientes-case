@@ -2,6 +2,7 @@ using Dapper;
 using Itau.Case.Clientes.Application.Interfaces;
 using Itau.Case.Clientes.Domain.Entities;
 using Itau.Case.Clientes.Infrastructure.Data;
+using System.Data;
 using System.Reflection;
 
 namespace Itau.Case.Clientes.Infrastructure.Repositories;
@@ -18,7 +19,7 @@ public class ClienteRepository : IClienteRepository
     public async Task<Cliente> AdicionarAsync(Cliente cliente, CancellationToken cancellationToken = default)
     {
         const string sql = @"
-            INSERT INTO clientes (Nome, Email, Saldo, DataCriacao, DataAtualizacao)
+            INSERT INTO Clientes (Nome, Email, Saldo, DataCriacao, DataAtualizacao)
             VALUES (@Nome, @Email, @Saldo, @DataCriacao, @DataAtualizacao);
             SELECT LAST_INSERT_ID();";
 
@@ -39,7 +40,7 @@ public class ClienteRepository : IClienteRepository
     public async Task AtualizarAsync(Cliente cliente, CancellationToken cancellationToken = default)
     {
         const string sql = @"
-            UPDATE clientes 
+            UPDATE Clientes 
             SET Nome = @Nome, Email = @Email, Saldo = @Saldo, DataAtualizacao = @DataAtualizacao
             WHERE Id = @Id";
 
@@ -54,9 +55,56 @@ public class ClienteRepository : IClienteRepository
         });
     }
 
+    public async Task AtualizarComTransacaoAsync(Cliente cliente, Transacao transacao, CancellationToken cancellationToken = default)
+    {
+        using var connection = _context.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        
+        using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        
+        try
+        {
+            const string sqlCliente = @"
+                UPDATE Clientes 
+                SET Saldo = @Saldo, DataAtualizacao = @DataAtualizacao
+                WHERE Id = @Id";
+
+            await connection.ExecuteAsync(sqlCliente, new
+            {
+                cliente.Id,
+                cliente.Saldo,
+                DataAtualizacao = DateTime.UtcNow
+            }, transaction);
+
+            const string sqlTransacao = @"
+                INSERT INTO Transacoes (ClienteId, Tipo, Valor, Descricao, DataTransacao)
+                VALUES (@ClienteId, @Tipo, @Valor, @Descricao, @DataTransacao);
+                SELECT LAST_INSERT_ID();";
+
+            var transacaoId = await connection.ExecuteScalarAsync<int>(sqlTransacao, new
+            {
+                ClienteId = cliente.Id,
+                Tipo = (int)transacao.Tipo,
+                transacao.Valor,
+                transacao.Descricao,
+                transacao.DataTransacao
+            }, transaction);
+
+            SetPrivateProperty(transacao, "Id", transacaoId);
+            SetPrivateProperty(transacao, "ClienteId", cliente.Id);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public async Task<bool> ExisteEmailAsync(string email, int? clienteIdParaIgnorar = null, CancellationToken cancellationToken = default)
     {
-        var sql = "SELECT COUNT(1) FROM clientes WHERE Email = @Email";
+        var sql = "SELECT COUNT(1) FROM Clientes WHERE Email = @Email";
         
         if (clienteIdParaIgnorar.HasValue)
         {
@@ -70,7 +118,7 @@ public class ClienteRepository : IClienteRepository
 
     public async Task<Cliente?> ObterPorEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        const string sql = "SELECT * FROM clientes WHERE Email = @Email";
+        const string sql = "SELECT * FROM Clientes WHERE Email = @Email";
         
         using var connection = _context.CreateConnection();
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { Email = email });
@@ -80,7 +128,7 @@ public class ClienteRepository : IClienteRepository
 
     public async Task<Cliente?> ObterPorIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        const string sql = "SELECT * FROM clientes WHERE Id = @Id";
+        const string sql = "SELECT * FROM Clientes WHERE Id = @Id";
         
         using var connection = _context.CreateConnection();
         var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { Id = id });
@@ -90,7 +138,7 @@ public class ClienteRepository : IClienteRepository
 
     public async Task<IEnumerable<Cliente>> ObterTodosAsync(CancellationToken cancellationToken = default)
     {
-        const string sql = "SELECT * FROM clientes";
+        const string sql = "SELECT * FROM Clientes";
         
         using var connection = _context.CreateConnection();
         var results = await connection.QueryAsync<dynamic>(sql);
@@ -100,7 +148,7 @@ public class ClienteRepository : IClienteRepository
 
     public async Task RemoverAsync(int id, CancellationToken cancellationToken = default)
     {
-        const string sql = "DELETE FROM clientes WHERE Id = @Id";
+        const string sql = "DELETE FROM Clientes WHERE Id = @Id";
         
         using var connection = _context.CreateConnection();
         await connection.ExecuteAsync(sql, new { Id = id });

@@ -1,25 +1,52 @@
 using Itau.Case.Clientes.Application.Common.Mediator;
 using Itau.Case.Clientes.Application.Interfaces;
+using Itau.Case.Clientes.Domain.Common;
+using Itau.Case.Clientes.Domain.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace Itau.Case.Clientes.Application.Context.Commands.DepositarSaldoCliente;
 
-public class DepositarHandler(IClienteRepository clienteRepository) : IHandler<DepositarCommand, DepositarCommandResult>
+public class DepositarHandler(IClienteRepository clienteRepository, ILogger<DepositarHandler> logger) 
+    : IHandler<DepositarCommand, Result<DepositarCommandResult>>
 {
-    public async Task<DepositarCommandResult> Handle(DepositarCommand request, CancellationToken cancellationToken)
+    public async Task<Result<DepositarCommandResult>> Handle(DepositarCommand request, CancellationToken cancellationToken)
     {
-        var cliente = await clienteRepository.ObterPorIdAsync(request.ClienteId, cancellationToken);
-        if (cliente == null)
-            throw new InvalidOperationException("Cliente não encontrado.");
+        try
+        {
+            logger.LogInformation("Processando depósito. ClienteId: {ClienteId}, Valor: {Valor}", request.ClienteId, request.Valor);
 
-        var saldoAnterior = cliente.Saldo;
-        cliente.Depositar(request.Valor, request.Descricao);
+            var cliente = await clienteRepository.ObterPorIdAsync(request.ClienteId, cancellationToken);
+            if (cliente == null)
+            {
+                logger.LogWarning("Cliente não encontrado para depósito. ClienteId: {ClienteId}", request.ClienteId);
+                return Error.NotFound("Cliente não encontrado.");
+            }
 
-        await clienteRepository.AtualizarAsync(cliente, cancellationToken);
+            var saldoAnterior = cliente.Saldo;
+            var transacao = cliente.Depositar(request.Valor, request.Descricao);
 
-        return new DepositarCommandResult(
-            cliente.Id,
-            saldoAnterior,
-            request.Valor,
-            cliente.Saldo);
+            await clienteRepository.AtualizarComTransacaoAsync(cliente, transacao, cancellationToken);
+
+            logger.LogInformation("Depósito realizado com sucesso. ClienteId: {ClienteId}, SaldoAnterior: {SaldoAnterior}, SaldoAtual: {SaldoAtual}", 
+                cliente.Id, saldoAnterior, cliente.Saldo);
+
+            var result = new DepositarCommandResult(
+                cliente.Id,
+                saldoAnterior,
+                request.Valor,
+                cliente.Saldo);
+
+            return Result<DepositarCommandResult>.Success(result);
+        }
+        catch (DomainException ex)
+        {
+            logger.LogWarning(ex, "Erro de validação ao processar depósito. ClienteId: {ClienteId}", request.ClienteId);
+            return Error.Validation(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Erro ao processar depósito. ClienteId: {ClienteId}", request.ClienteId);
+            return Error.Failure("Erro ao processar depósito.");
+        }
     }
 }
